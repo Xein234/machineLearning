@@ -3,6 +3,18 @@ from  itertools import combinations
 from statistics import mean
 from itertools import product as cartesianProduct
 
+# *tuple vs tuple
+def _assertAllSame(iterable):
+    iterator = iter(iterable)
+    try:
+        formerElement = next(iterator)
+    #make more especifict this except
+    except:
+        return
+    for e in iterator:
+        assert e == formerElement
+        formerElement = e
+
 
 def minkowsky(a,b):
     return Cluster.minkowsky(*Cluster._initVectors(a,b))
@@ -23,10 +35,7 @@ class Cluster:
     def _initVectors(*vectors):
         assert len(vectors) > 0
         assert any(map(len,vectors))
-        formerElementLen = len(vectors[0])
-        for v in vectors[1:]:
-            assert len(v) == formerElementLen
-            formerElementLen = len(v)
+        _assertAllSame(map(len, vectors))
 
         return tuple(np.array(v) for v in vectors)
 
@@ -39,19 +48,25 @@ class Cluster:
     def manhattan(a,b):
         return sum(abs(a-b))
 
-    # def mergeClosest(*clusters):
+    def findClosests(*clusters):
     #TODO: sacar el producto carteciano y unir el par mas cercano
+        #aquí si puedes optimizar.
+        # map(self.distance, combinations(clusters, 2))
+        _assertAllSame(map(lambda x: getattr(x, 'distanceMetric'), clusters))
+        combinationsBetween2Clusters = combinations(clusters, 2)
+        return min(((  a.distance(b), (a,b)) for a,b in combinations(
+                   clusters, 2  )), key=lambda x: x[0])
 
     def distance(self, other:'Cluster'):
         #TODO:optimize latter
         allLinkageDists = [getattr(self, self.distanceMetric)(a,b) for a,b in
                           cartesianProduct(self.vectors, other.vectors)]
-        #pero te puedes ahorrar la mitad ^^^^^ (cual seria el nombre de esa f.?)
         import ipdb;ipdb.set_trace()
         return {'single':  min(allLinkageDists),
                 'complete':max(allLinkageDists),
                 'average': mean(allLinkageDists)}[self.linkage]
         
+        # make a func that uses pipe to merge 2 clusters
         
 if __name__ == '__main__':
     # import ipdb; ipdb.set_trace()
