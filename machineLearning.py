@@ -37,16 +37,9 @@ class Cluster:
         assert len(vectors[0]) > 0
         assert all(len(vectors[0]) == len(vector) for vector in vectors[1:])
 
-        # class VArray(np.array):
-        #     'np.ndarray but for feature vectors'
-        #     def regSpdRepr(self):
-        #         'reguarly spaced repr'
-        #         import ipdb; ipdb.set_trace()
-        #         return '[%s]' % ', '.join(map(repr, self))
-
-        # return tuple(VArray(v) for v in vectors)
-        return tuple(np.array(v) for v in vectors)
-
+        key = lambda v: list(v) if isinstance(v, np.ndarray) else v
+        return tuple(sorted(vectors, key=key))
+            
 
     @staticmethod
     def minkowsky(a,b):
@@ -56,6 +49,7 @@ class Cluster:
     def manhattan(a,b):
         return sum(abs(a-b))
 
+    # tuple collecting helps here. (?)
     def findClosests(*clusters):
         _assertAllSame(map(lambda x: getattr(x, 'distanceMetric'), clusters))
         combinationsBetween2Clusters = combinations(clusters, 2)
@@ -75,7 +69,7 @@ class Cluster:
         #special case: len(clusters)==0
         #i think mergeClosests and findClosests must be in other class
 
-    def distance(self, other:'Cluster'):
+    def distance(self, other):
         allLinkageDists = [getattr(self, self.distanceMetric)(a,b) for a,b in
                           cartesianProduct(self.vectors, other.vectors)]
         # import ipdb;ipdb.set_trace()
@@ -85,7 +79,7 @@ class Cluster:
         
     def __repr__(self):
         #this is a good solution, sublclassing np.array or
-        #np.ndarray for a custom repr or str method, is to wierd DO NOT TRY IT
+        #np.ndarray for a custom repr or str method, is too wierd DO NOT TRY IT
         #LMAO, it requires too much knowledge and reading by me and other
         #people reading this code
         def reguarlySpacedVectorRepr(vector):
@@ -93,12 +87,11 @@ class Cluster:
         return 'C{%s}' % ', '.join(map(reguarlySpacedVectorRepr, self.vectors))
 
     def __eq__(self, other):
-        # import ipdb; ipdb.set_trace()
-        return all(feature1 == feature2
-                   for vector1,  vector2   in zip(self,    other  )
-                   for feature1, feature2  in zip(vector1, vector2))
-        #TODO: use this patter instead of _assertAllSame
-        #TODO: can i make this pattern a func for use in decorators?
+        return set(tuple(e) for e in self) == set(tuple(e) for e in other)
+    
+class ClusterGrop:
+    def __init__(self, *clusters):
+        self.clusters = clusters
     
         
 if __name__ == '__main__':
@@ -108,8 +101,7 @@ if __name__ == '__main__':
     assert minkowsky(*vectors1) == 2* 2**(1/2)
 
     cluster1 = Cluster(*vectors1)
-    cluster2 = Cluster(*vectors2)
-
+    cluster2 = Cluster(*vectors2) 
     cluster1.distance(cluster2)
     cluster2.distanceMetric, cluster2.distanceMetric = ('manhattan',)*2
     # import ipdb; ipdb.set_trace()
